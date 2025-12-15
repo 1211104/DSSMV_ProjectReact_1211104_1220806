@@ -78,7 +78,7 @@ const LoadBookScreen = ({ route }) => {
         }
     };
 
-    // Limpar estado global ao sair do ecrã (opcional, mas boa prática)
+    // Limpar estado global ao sair do ecrã
     useEffect(() => {
         return () => {
             // Unmount cleanup

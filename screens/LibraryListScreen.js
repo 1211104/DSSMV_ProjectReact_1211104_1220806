@@ -116,9 +116,9 @@ const LibraryListScreen = () => {
     );
 };
 
-// ... Mantenha os styles originais do ficheiro ...
+
 const styles = StyleSheet.create({
-    // ... copia os teus estilos aqui ...
+
     background: { flex: 1, resizeMode: "cover" },
     container: { flex: 1, padding: 16, backgroundColor: "rgba(0, 0, 0, 0.5)" },
     createButton: { position: "absolute", top: 45, right: 16, backgroundColor: "#c4c4c4ff", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, minWidth: 120, alignItems: "center", borderWidth: 1, borderColor: "#eaeaea", zIndex: 10 },

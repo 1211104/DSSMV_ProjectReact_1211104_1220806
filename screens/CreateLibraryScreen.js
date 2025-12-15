@@ -100,7 +100,7 @@ const CreateLibraryScreen = () => {
         }
     };
 
-    // --- ALTERAÇÃO PRINCIPAL ---
+
     const handleCreateLibrary = () => {
         if (!name || !address || selectedDays.length === 0) {
             Alert.alert("Validation Error", "All fields are required!");
@@ -193,7 +193,7 @@ const CreateLibraryScreen = () => {
     );
 };
 
-// ... Styles (copiar do ficheiro original, são iguais) ...
+
 const styles = StyleSheet.create({
     background: { flex: 1, resizeMode: "cover" },
     container: { flex: 1, padding: 20, backgroundColor: "rgba(0, 0, 0, 0.5)" },

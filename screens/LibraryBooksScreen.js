@@ -43,7 +43,7 @@ const LibraryBooksScreen = ({ route }) => {
         setModalVisible(true);
     };
 
-    // ... (o resto do código do modalOptions mantém-se igual, apenas navega) ...
+
     const modalOptions = [
         {
             label: "Update Book Stock",
@@ -132,7 +132,7 @@ const LibraryBooksScreen = ({ route }) => {
     );
 };
 
-// ... Styles ...
+
 const styles = StyleSheet.create({
     // Copia os teus estilos originais aqui...
     background: { flex: 1, resizeMode: "cover" },

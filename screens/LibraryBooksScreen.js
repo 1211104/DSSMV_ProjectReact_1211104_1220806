@@ -75,7 +75,7 @@ const LibraryBooksScreen = ({ route }) => {
     ];
 
     const renderBookCard = ({ item }) => {
-        // ... (lógica de renderização mantém-se igual) ...
+
         const coverUrl = item.book.cover?.mediumUrl
             ? LIB_API_URL + item.book.cover.mediumUrl.replace("/api", "")
             : null;

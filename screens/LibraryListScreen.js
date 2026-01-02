@@ -10,7 +10,6 @@ import { AppContext } from '../store/AppProvider';
 import { fetchLibrariesAction, deleteLibraryAction } from '../store/actions';
 
 const LibraryListScreen = () => {
-    // Consumir Contexto
     const { state, dispatch } = useContext(AppContext);
     const { libraries, isLoading } = state;
 
@@ -18,12 +17,41 @@ const LibraryListScreen = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const navigation = useNavigation();
 
-    // Função para carregar dados via Action
+    const isLibraryOpen = (library) => {
+        // Verificação de Segurança: Se algum campo obrigatório for nulo, assume que está fechada
+        if (!library.openDays || !library.openTime || !library.closeTime) {
+            return false;
+        }
+
+        try {
+            const now = new Date();
+            const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const currentDay = daysOfWeek[now.getDay()];
+
+            // 1. Verificar se a biblioteca abre hoje
+            const openDaysList = library.openDays.split(',').map(d => d.trim());
+            if (!openDaysList.includes(currentDay)) return false;
+
+            // 2. Comparar horários
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+            const [openH, openM] = library.openTime.split(':').map(Number);
+            const [closeH, closeM] = library.closeTime.split(':').map(Number);
+
+            const openTimeMinutes = openH * 60 + openM;
+            const closeTimeMinutes = closeH * 60 + closeM;
+
+            return currentMinutes >= openTimeMinutes && currentMinutes <= closeTimeMinutes;
+        } catch (error) {
+            console.error("Error parsing library hours:", error);
+            return false; // Em caso de formato de hora inválido, mantém como fechada
+        }
+    };
+
     const loadData = useCallback(() => {
         fetchLibrariesAction(dispatch);
     }, [dispatch]);
 
-    // Carregar ao montar e ao focar
     useEffect(() => {
         loadData();
     }, [loadData]);
@@ -48,7 +76,6 @@ const LibraryListScreen = () => {
         {
             label: "Delete Library",
             onPress: () => {
-                // Usar Action de Delete
                 deleteLibraryAction(dispatch, selectedLibrary.id)
                     .then(() => {
                         setModalVisible(false);
@@ -66,20 +93,30 @@ const LibraryListScreen = () => {
         },
     ];
 
-    const renderLibraryCard = ({ item }) => (
-        <TouchableOpacity
-            style={styles.cardContainer}
-            onPress={() => handleLibraryPress(item)}
-        >
-            <LibraryCard
-                name={item.name}
-                address={item.address}
-                openDays={item.openDays || "N/A"}
-                openTime={item.openTime || "N/A"}
-                closeTime={item.closeTime || "N/A"}
-            />
-        </TouchableOpacity>
-    );
+    const renderLibraryCard = ({ item }) => {
+        // Se não houver dados de horário, usamos um cinzento ou vermelho suave
+        const isOpen = isLibraryOpen(item);
+
+        const backgroundColor = isOpen
+            ? "rgba(87, 240, 87, 0.7)"  // Verde
+            : "rgba(240, 87, 87, 0.7)"; // Vermelho
+
+        return (
+            <TouchableOpacity
+                style={[styles.cardContainer, { backgroundColor }]}
+                onPress={() => handleLibraryPress(item)}
+            >
+                <LibraryCard
+                    name={item.name}
+                    address={item.address}
+                    // Garante que o texto não falha se os dados forem nulos
+                    openDays={item.openDays || "N/A"}
+                    openTime={item.openTime || "N/A"}
+                    closeTime={item.closeTime || "N/A"}
+                />
+            </TouchableOpacity>
+        );
+    };
 
     return (
         <ImageBackground
@@ -96,7 +133,6 @@ const LibraryListScreen = () => {
 
                 <Text style={styles.text}>Libraries</Text>
 
-                {/* Usamos 'libraries' vindo do Contexto Global */}
                 <FlatList
                     data={libraries}
                     keyExtractor={(item) => item.id.toString()}
@@ -116,15 +152,19 @@ const LibraryListScreen = () => {
     );
 };
 
-
 const styles = StyleSheet.create({
-
     background: { flex: 1, resizeMode: "cover" },
     container: { flex: 1, padding: 16, backgroundColor: "rgba(0, 0, 0, 0.5)" },
     createButton: { position: "absolute", top: 45, right: 16, backgroundColor: "#c4c4c4ff", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, minWidth: 120, alignItems: "center", borderWidth: 1, borderColor: "#eaeaea", zIndex: 10 },
     createButtonText: { color: "#111", fontSize: 12, fontWeight: "600" },
     text: { fontSize: 24, fontWeight: "bold", color: "#fff", marginBottom: 16 },
-    cardContainer: { backgroundColor: "rgba(255, 255, 255, 0.5)", borderRadius: 10, marginVertical: 8, padding: 16, elevation: 5 },
+    cardContainer: {
+        // backgroundColor original removida para permitir a cor dinâmica
+        borderRadius: 10,
+        marginVertical: 8,
+        padding: 16,
+        elevation: 5
+    },
 });
 
 export default LibraryListScreen;

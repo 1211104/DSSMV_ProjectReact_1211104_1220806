@@ -57,23 +57,32 @@ const CheckOutScreen = ({ route }) => {
         try {
             const username = await resolveUsername();
 
-            // O Flux Action idealmente apenas atualiza o estado, mas aqui precisamos do retorno da API (Receipt).
-            // Se usares a checkoutBookAction do passo anterior, ela não retorna dados.
-            // Solução Híbrida: Chamar a API para obter o recibo E DEPOIS chamar a action para atualizar a lista.
+            // Log para confirmar os dados antes do envio
+            console.log("Enviando Checkout:", { libraryId, isbn: book.isbn, username });
 
-            const response = await CheckOutBook(libraryId, book.isbn, username); // Chamada direta para obter recibo
-            const { id, dueDate, book: responseBook } = response.data;
-            setCheckoutData({ id, isbn: responseBook.isbn, dueDate });
+            const response = await CheckOutBook(libraryId, book.isbn, username);
 
-            // Atualizar o estado global (recarregar livros)
-            await checkoutBookAction(dispatch, libraryId, book.isbn, username);
+            setCheckoutData({
+                id: response.data.id,
+                isbn: response.data.book.isbn,
+                dueDate: response.data.dueDate
+            });
 
-            await AsyncStorage.setItem("userId", username);
-            Keyboard.dismiss();
             Alert.alert("Success", "Book successfully checked out.");
         } catch (err) {
-            console.error("Checkout error:", err);
-            Alert.alert("Error", err?.message ?? "Checkout failed.");
+            // SE DER ERRO 400, A API ENVIA UMA MENSAGEM NO 'response.data'
+            if (err.response) {
+                console.error("ERRO DETALHADO DA API:", err.response.data);
+
+                // Tenta extrair a mensagem de erro que o servidor enviou
+                const errorMessage = err.response.data.message ||
+                    err.response.data.error ||
+                    "Invalid parameters (check stock or IDs)";
+
+                Alert.alert("Error", errorMessage);
+            } else {
+                Alert.alert("Error", err.message);
+            }
         }
     };
 

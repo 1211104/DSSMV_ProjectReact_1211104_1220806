@@ -64,17 +64,21 @@ const LoadBookScreen = ({ route }) => {
     };
 
     const handleAddBook = () => {
-        // Usamos 'searchedBook' do estado global
-        if (!searchedBook) {
-            Alert.alert("Validation Error", "No book details loaded. Please load a book first.");
+        // Validação de Segurança: Se não houver livro ou se o livro não tiver ISBN, para aqui.
+        if (!searchedBook || !searchedBook.isbn) {
+            Alert.alert("Validation Error", "No valid book details loaded. Please click 'Load Book' first.");
             return;
         }
 
+        // Verifica duplicados
         if (libraryBooks.includes(searchedBook.isbn)) {
             Alert.alert("Validation Error", "This book already exists in the library.");
         } else {
-            // Passamos o livro do estado global para o próximo ecrã
-            navigation.navigate("AddBook", { book: searchedBook, libraryId: persistedLibraryId });
+            // Avança apenas se tudo estiver correto
+            navigation.navigate("AddBook", {
+                book: searchedBook,
+                libraryId: persistedLibraryId
+            });
         }
     };
 
@@ -125,19 +129,13 @@ const LoadBookScreen = ({ route }) => {
                 {/* Renderiza apenas se existir um searchedBook no estado global */}
                 {searchedBook && (
                     <View style={styles.bookDetails}>
-                        <Text style={styles.detailText}>ISBN: {searchedBook.isbn}</Text>
-                        <Text style={styles.detailText}>Title: {searchedBook.title}</Text>
-                        <Text style={styles.detailText}>Publish Date: {searchedBook.publishDate}</Text>
-                        <Text style={styles.detailText}>Number of Pages: {searchedBook.numberOfPages}</Text>
-                        <Text style={styles.detailText}>Author: {searchedBook.byStatement}</Text>
+                        <Text style={styles.detailText}>ISBN: {searchedBook?.isbn || "N/A"}</Text>
+                        <Text style={styles.detailText}>Title: {searchedBook?.title || "No Title"}</Text>
+                        <Text style={styles.detailText}>Author: {searchedBook?.byStatement || "Unknown"}</Text>
 
-                        {searchedBook.coverUrl && (
-                            <Image
-                                source={{ uri: searchedBook.coverUrl }}
-                                style={styles.coverImage}
-                                resizeMode="cover"
-                            />
-                        )}
+                        {searchedBook?.coverUrl ? (
+                            <Image source={{ uri: searchedBook.coverUrl }} style={styles.coverImage} resizeMode="cover" />
+                        ) : null}
 
                         <TouchableOpacity style={styles.addButton} onPress={handleAddBook}>
                             <Text style={styles.addButtonText}>Add Book</Text>

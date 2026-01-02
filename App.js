@@ -3,10 +3,8 @@ import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-// Importa o Provider da Store
 import { AppProvider } from './store/AppProvider';
 
-// Importa os Ecrãs (Screens)
 import HomeScreen from './screens/HomeScreen';
 import LibraryListScreen from './screens/LibraryListScreen';
 import LibraryBooksScreen from './screens/LibraryBooksScreen';

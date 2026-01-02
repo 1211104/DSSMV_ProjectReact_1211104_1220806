@@ -7,6 +7,23 @@ const AddBookScreen = ({ route, navigation }) => {
     const { libraryId: incomingLibId, book } = route.params || {};
     const { dispatch } = useContext(AppContext);
 
+    if (!book) {
+        return (
+            <ImageBackground source={require("../assets/background.jpeg")} style={styles.background}>
+                <View style={styles.container}>
+                    <Text style={{color: 'white', fontSize: 18, textAlign: 'center'}}>
+                        Error: No book data received.
+                    </Text>
+                    <TouchableOpacity
+                        style={[styles.addButton, { marginTop: 20 }]}
+                        onPress={() => navigation.goBack()}>
+                        <Text style={styles.addButtonText}>Go Back</Text>
+                    </TouchableOpacity>
+                </View>
+            </ImageBackground>
+        );
+    }
+
     const [libraryId, setLibraryId] = useState(incomingLibId ?? null);
     const [stock, setStock] = useState("");
 

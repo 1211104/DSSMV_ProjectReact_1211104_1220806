@@ -1,0 +1,34 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+title LibraSys Use Cases
+
+actor "Client" as User
+
+rectangle "Library Management System" {
+    (UC1 - List Libraries) as UC1
+    (UC2 - Create Library) as UC2
+    (UC3 - Delete Library) as UC3
+    (UC4 - Update Library) as UC4
+    (UC5 - Get Books from Selected Library) as UC5
+    (UC6 - Add Book to Library) as UC6
+    (UC7 - Update Book Stock) as UC7
+    (UC8 - CheckOut Book) as UC8
+    (UC9 - CheckIn Book) as UC9
+
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC5
+User --> UC6
+User --> UC7
+User --> UC8
+User --> UC9
+
+
+
+@enduml

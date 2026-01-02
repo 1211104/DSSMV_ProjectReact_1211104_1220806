@@ -127,14 +127,27 @@ export const checkinBookAction = async (dispatch, libraryId, isbn, userId) => {
 };
 
 export const searchBookAction = async (dispatch, isbn) => {
+
+    console.log(">>> A PESQUISAR ISBN:", isbn, " (Tipo:", typeof isbn, ")");
+
     dispatch({ type: SET_LOADING, payload: true });
     try {
         const response = await LoadBook(isbn);
-        dispatch({ type: SEARCH_BOOK_SUCCESS, payload: response.data });
+
+
+        // Garante que response e response.data existem antes de enviar para o estado
+        if (response && response.data) {
+            dispatch({ type: SEARCH_BOOK_SUCCESS, payload: response.data });
+        } else {
+            // Se a API responder OK mas sem dados de livro (ex: objeto vazio)
+            throw new Error("Dados do livro inválidos ou vazios.");
+        }
+
     } catch (error) {
-        console.error(error);
+        console.error("Erro na pesquisa:", error);
         dispatch({ type: SET_ERROR, payload: "Livro não encontrado ou erro na API." });
-        // Opcional: Limpar pesquisa anterior se a nova falhar
+
+        // limpar qualquer "lixo" anterior se a pesquisa falhar
         dispatch({ type: CLEAR_SEARCHED_BOOK });
     }
 };

@@ -1,0 +1,41 @@
+@startuml
+skinparam sequenceMessageAlign center
+autoactivate on
+
+actor "User" as User
+participant "LibraryListScreen" as Screen
+participant "Actions" as Action
+participant "LibraryService" as Service
+participant "LibraryAPI" as API
+participant "Reducer" as Store
+
+User -> Screen : Open / Focus Screen
+note right of Screen
+  Triggers useEffect / useFocusEffect
+  Calls loadData()
+end note
+
+Screen -> Action : fetchLibrariesAction(dispatch)
+
+Action -> Store : dispatch({ type: SET_LOADING, payload: true })
+return State Updated (isLoading = true)
+
+Action -> Service : GetLibraries()
+Service -> API : GET /v1/library
+return JSON Response (List of Libraries)
+return Response Data
+
+alt Success
+    Action -> Store : dispatch({ type: FETCH_LIBRARIES_SUCCESS, payload: data })
+    return State Updated (libraries = data, isLoading = false)
+else Error
+    Action -> Store : dispatch({ type: SET_ERROR, payload: message })
+    return State Updated (error = message, isLoading = false)
+end
+
+return Promise Resolved
+
+Screen -> Screen : Re-render with new state
+return Display Library List
+
+@enduml

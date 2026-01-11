@@ -1,0 +1,66 @@
+@startuml
+skinparam sequenceMessageAlign center
+autoactivate on
+
+actor "User" as User
+participant "CheckOutScreen" as Screen
+participant "UserStore (SQLite)" as DB
+participant "LibraryService" as Service
+participant "API" as API
+participant "Actions" as Action
+participant "Reducer" as Store
+
+User -> Screen : Select Mode & Click "Confirm"
+
+group Resolve User Identity
+    alt Mode: User ID (Manual)
+        Screen -> Screen : Validate Input
+        return Username
+    else Mode: CC Lookup
+        Screen -> DB : findUserByCC(cc)
+        return User Object
+    else Mode: Create User
+        Screen -> DB : createUser(details)
+        return New User Object
+    end
+end
+
+note right of Screen
+  **Step 1: Transaction (Get Receipt)**
+  Screen calls Service directly to get
+  return values (dueDate, id) not handled by Action
+end note
+
+Screen -> Service : CheckOutBook(libId, isbn, user)
+Service -> API : POST /v1/library/.../checkout
+return JSON (Transaction ID, DueDate)
+return Response Data
+
+Screen -> Screen : setCheckoutData(receipt)
+return UI Updated (Internal State)
+
+note right of Screen
+  **Step 2: Synchronization**
+  Updates global state to reflect
+  reduced stock / availability
+end note
+
+Screen -> Action : checkoutBookAction(dispatch, ...)
+
+    group Refetch Pattern
+        Action -> Action : fetchBooksAction(dispatch)
+            Action -> Service : GetBooks(libId)
+            Service -> API : GET /v1/library/.../book
+            return Updated Book List
+
+            Action -> Store : dispatch(FETCH_BOOKS_SUCCESS)
+            return State Updated
+        return Refetch Complete
+    end
+
+return Promise Resolved
+
+Screen -> User : Alert("Success", "Book checked out")
+Screen -> User : Display Receipt (ID & Due Date)
+
+@enduml

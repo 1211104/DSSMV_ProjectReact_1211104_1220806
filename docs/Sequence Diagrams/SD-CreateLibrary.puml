@@ -1,0 +1,48 @@
+@startuml
+skinparam sequenceMessageAlign center
+autoactivate on
+
+actor "User" as User
+participant "CreateLibraryScreen" as Screen
+participant "Actions" as Action
+participant "LibraryService" as Service
+participant "API" as API
+participant "Reducer" as Store
+
+User -> Screen : Fill Form & Click "Create"
+note right of Screen
+  Validates inputs
+  (Name, Address, Open Days)
+end note
+
+Screen -> Action : createLibraryAction(dispatch, newLibrary)
+
+Action -> Store : dispatch({ type: SET_LOADING, payload: true })
+return State Updated (isLoading = true)
+
+Action -> Service : CreateLibrary(libraryData)
+Service -> API : POST /v1/library
+return 200 OK (Success)
+
+note right of Action
+  **Pattern:** Immediate Re-fetch
+  Ensures list is up-to-date
+end note
+
+Action -> Action : fetchLibrariesAction(dispatch)
+    Action -> Service : GetLibraries()
+    Service -> API : GET /v1/library
+    return List of Libraries
+
+    Action -> Store : dispatch({ type: FETCH_LIBRARIES_SUCCESS, payload: list })
+    return State Updated
+return Data Refreshed
+
+return Promise Resolved
+
+Screen -> User : Alert("Success", "Library created successfully!")
+User -> Screen : Click "OK"
+Screen -> Screen : navigation.goBack()
+return Navigate to Previous Screen
+
+@enduml

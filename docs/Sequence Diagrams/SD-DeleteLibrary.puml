@@ -1,0 +1,50 @@
+@startuml
+skinparam sequenceMessageAlign center
+autoactivate on
+
+actor "User" as User
+participant "LibraryListScreen" as Screen
+participant "Actions" as Action
+participant "LibraryService" as Service
+participant "API" as API
+participant "Reducer" as Store
+
+User -> Screen : Long Press / Select Library
+Screen -> Screen : setModalVisible(true)
+return Open Modal
+
+User -> Screen : Click "Delete Library"
+
+Screen -> Action : deleteLibraryAction(dispatch, libraryId)
+
+Action -> Service : DeleteLibrary(libraryId)
+Service -> API : DELETE /v1/library/{id}
+return 200 OK (Success)
+
+note right of Action
+  **Refetch Pattern:**
+  Reloads list to sync with server
+end note
+
+Action -> Action : fetchLibrariesAction(dispatch)
+    Action -> Store : dispatch({ type: SET_LOADING, true })
+    return State Updated
+
+    Action -> Service : GetLibraries()
+    Service -> API : GET /v1/library
+    return Updated List of Libraries
+
+    Action -> Store : dispatch({ type: FETCH_LIBRARIES_SUCCESS, list })
+    return State Updated (New List)
+return Refetch Complete
+
+return Promise Resolved
+
+Screen -> Screen : setModalVisible(false)
+return Modal Closed
+
+Screen -> User : Alert("Success", "Library successfully deleted")
+Screen -> Screen : Re-render List
+return View Updated
+
+@enduml

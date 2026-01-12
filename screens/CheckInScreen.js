@@ -4,9 +4,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { initUserTable, findUserByUsername, findUserByCC } from "../database/userStore";
 
-// Flux Imports
 import { AppContext } from "../store/AppProvider";
 import { checkinBookAction } from "../store/actions";
+
+import { getFriendlyErrorMessage } from "../utils/errorHandler";
 
 const MODES = { USER_ID: "USER_ID", CC_LOOKUP: "CC_LOOKUP" };
 
@@ -26,14 +27,14 @@ export default function CheckInScreen({ route }) {
 
     const resolveUsername = async () => {
         if (mode === MODES.USER_ID) {
-            if (!userId.trim()) throw new Error("Enter a User ID.");
+            if (!userId.trim()) throw new Error("Insira um ID de utilizador.");
             const u = await findUserByUsername(userId.trim());
-            if (!u) throw new Error("User not found.");
+            if (!u) throw new Error("Utilizador não encontrado.");
             return u.username;
         } else {
-            if (!cc.trim()) throw new Error("Enter CC.");
+            if (!cc.trim()) throw new Error("Insira o CC.");
             const u = await findUserByCC(cc.trim());
-            if (!u) throw new Error("No user with that CC.");
+            if (!u) throw new Error("Nenhum utilizador com esse CC.");
             return u.username;
         }
     };
@@ -47,11 +48,13 @@ export default function CheckInScreen({ route }) {
 
             await AsyncStorage.setItem("userId", username);
             Keyboard.dismiss();
-            Alert.alert("Success", `${username} checked-in successfully.`);
+            Alert.alert("Sucesso", `${username} devolveu o livro com sucesso.`);
             navigation.goBack();
         } catch (e) {
             console.error("Check-in error:", e);
-            Alert.alert("Error", e?.message ?? "Failed to check in book.");
+
+            const msg = getFriendlyErrorMessage(e);
+            Alert.alert("Erro na Devolução", msg);
         }
     };
 
@@ -80,20 +83,19 @@ export default function CheckInScreen({ route }) {
                         <TextInput style={styles.input} placeholder="CC" value={cc} onChangeText={setCC} keyboardType="number-pad" />
                     )}
 
-                    <Button title="Done" onPress={handleCheckIn} color="#007BFF" />
+                    <Button title="Confirmar Devolução" onPress={handleCheckIn} color="#007BFF" />
                 </KeyboardAvoidingView>
             </ImageBackground>
         </TouchableWithoutFeedback>
     );
 }
 
-
 const styles = StyleSheet.create({
     background: { flex: 1, resizeMode: "cover" },
     container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "rgba(0,0,0,0.5)" },
     title: { fontSize: 24, fontWeight: "bold", marginBottom: 20, textAlign: "center", color: "#fff" },
     block: { marginBottom: 18 },
-    input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 10, fontSize: 16, color: "#fff", backgroundColor: "rgba(255,255,255,0.2)" },
+    input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 10, fontSize: 16, color: "#fff", backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 20 }, // Ajustei margem
     modeRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
     modeChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: "#ccc" },
     modeChipActive: { backgroundColor: "#fff" },

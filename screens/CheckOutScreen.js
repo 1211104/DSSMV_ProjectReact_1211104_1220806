@@ -1,20 +1,17 @@
 import React, { useEffect, useState, useContext } from "react";
-import { View, Text, TextInput, Button, StyleSheet, Alert, ImageBackground, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, TouchableOpacity } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { View, Text, TextInput, Button, StyleSheet, ImageBackground, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, Alert, TouchableOpacity } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+import { initUserTable, findUserByUsername, findUserByCC } from "../database/userStore";
 
-// Imports SQLite (locais, não precisam de Flux global, a menos que queiras gerir user no Context)
-import { findUserByCC, findUserByUsername, createUser, dumpUsers, initUserTable } from "../database/userStore";
-
-// Flux Imports
 import { AppContext } from "../store/AppProvider";
-import { checkoutBookAction } from "../store/actions";
-import { CheckOutBook } from "../service/LibraryService"; // Podemos precisar chamar direto se a action não retornar dados, mas vamos tentar adaptar.
+import { checkinBookAction } from "../store/actions";
 
-const ROLES = ["Client", "Librarian", "Admin"];
-const MODES = { USER_ID: "USER_ID", CC_LOOKUP: "CC_LOOKUP", CREATE_USER: "CREATE_USER" };
+import { getFriendlyErrorMessage } from "../utils/errorHandler";
 
-const CheckOutScreen = ({ route }) => {
+const MODES = { USER_ID: "USER_ID", CC_LOOKUP: "CC_LOOKUP" };
+
+export default function CheckInScreen({ route }) {
     const { libraryId, book } = route.params;
     const { dispatch } = useContext(AppContext);
     const navigation = useNavigation();
@@ -22,67 +19,42 @@ const CheckOutScreen = ({ route }) => {
     const [mode, setMode] = useState(MODES.USER_ID);
     const [userId, setUserId] = useState("");
     const [cc, setCC] = useState("");
-    const [firstName, setFirstName] = useState("");
-    const [phone, setPhone] = useState("");
-    const [role, setRole] = useState("Client");
-    const [checkoutData, setCheckoutData] = useState(null);
 
     useEffect(() => {
-        initUserTable().catch((e) => console.warn("initUserTable error:", e));
-        AsyncStorage.getItem("userId").then((stored) => stored && setUserId(stored));
+        initUserTable().catch(() => {});
+        AsyncStorage.getItem("userId").then((saved) => saved && setUserId(saved));
     }, []);
 
     const resolveUsername = async () => {
-        // ... (lógica inalterada do ficheiro original) ...
         if (mode === MODES.USER_ID) {
-            if (!userId.trim()) throw new Error("Enter a User ID.");
+            if (!userId.trim()) throw new Error("Insira um ID de utilizador.");
             const u = await findUserByUsername(userId.trim());
-            if (!u) throw new Error("User ID not found.");
+            if (!u) throw new Error("Utilizador não encontrado.");
             return u.username;
-        }
-        if (mode === MODES.CC_LOOKUP) {
-            if (!cc.trim()) throw new Error("Indicate CC.");
+        } else {
+            if (!cc.trim()) throw new Error("Insira o CC.");
             const u = await findUserByCC(cc.trim());
-            if (!u) throw new Error("No user with that CC.");
+            if (!u) throw new Error("Nenhum utilizador com esse CC.");
             return u.username;
         }
-        if (!cc.trim() || !firstName.trim() || !phone.trim()) throw new Error("Enter details.");
-        const existing = await findUserByCC(cc.trim());
-        if (existing) return existing.username;
-        const newUser = await createUser({ cc: cc.trim(), firstName: firstName.trim(), phone: phone.trim(), role });
-        return newUser.username;
     };
 
-    const handleCheckout = async () => {
+    const handleCheckIn = async () => {
         try {
             const username = await resolveUsername();
 
-            // Log para confirmar os dados antes do envio
-            console.log("Enviando Checkout:", { libraryId, isbn: book.isbn, username });
+            // Dispara a Action
+            await checkinBookAction(dispatch, libraryId, book.isbn, username);
 
-            const response = await CheckOutBook(libraryId, book.isbn, username);
+            await AsyncStorage.setItem("userId", username);
+            Keyboard.dismiss();
+            Alert.alert("Sucesso", `${username} devolveu o livro com sucesso.`);
+            navigation.goBack();
+        } catch (e) {
+            console.error("Check-in error:", e);
 
-            setCheckoutData({
-                id: response.data.id,
-                isbn: response.data.book.isbn,
-                dueDate: response.data.dueDate
-            });
-
-            Alert.alert("Success", "Book successfully checked out.");
-        } catch (err) {
-            // SE DER ERRO 400, A API ENVIA UMA MENSAGEM NO 'response.data'
-            if (err.response) {
-                console.error("ERRO DETALHADO DA API:", err.response.data);
-
-                // Tenta extrair a mensagem de erro que o servidor enviou
-                const errorMessage = err.response.data.message ||
-                    err.response.data.error ||
-                    "Invalid parameters (check stock or IDs)";
-
-                Alert.alert("Error", errorMessage);
-            } else {
-                Alert.alert("Error", err.message);
-            }
+            const msg = getFriendlyErrorMessage(e);
+            Alert.alert("Erro na Devolução", msg);
         }
     };
 
@@ -96,62 +68,37 @@ const CheckOutScreen = ({ route }) => {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <ImageBackground source={require("../assets/background.jpeg")} style={styles.background}>
                 <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-                    <Text style={styles.title}>Check Out Book</Text>
-                    {/* ... Inputs de User ID, CC, Create User (iguais ao original) ... */}
+                    <Text style={styles.title}>Check In Book</Text>
+
                     <View style={styles.block}>
                         <View style={styles.modeRow}>
                             <ModeChip label="1) User ID" value={MODES.USER_ID} />
                             <ModeChip label="2) Existing CC" value={MODES.CC_LOOKUP} />
-                            <ModeChip label="3) Create user" value={MODES.CREATE_USER} />
                         </View>
                     </View>
 
-                    {mode === MODES.USER_ID && (
+                    {mode === MODES.USER_ID ? (
                         <TextInput style={styles.input} placeholder="User ID" value={userId} onChangeText={setUserId} />
-                    )}
-                    {mode === MODES.CC_LOOKUP && (
+                    ) : (
                         <TextInput style={styles.input} placeholder="CC" value={cc} onChangeText={setCC} keyboardType="number-pad" />
                     )}
-                    {mode === MODES.CREATE_USER && (
-                        <>
-                            <TextInput style={styles.input} placeholder="CC" value={cc} onChangeText={setCC} keyboardType="number-pad"/>
-                            <TextInput style={styles.input} placeholder="First Name" value={firstName} onChangeText={setFirstName} />
-                            <TextInput style={styles.input} placeholder="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad"/>
-                        </>
-                    )}
 
-                    <Button title="Done" onPress={handleCheckout} color="#007BFF" />
-
-                    {checkoutData && (
-                        <View style={styles.resultContainer}>
-                            <Text style={styles.resultText}>Checkout ID: {checkoutData.id}</Text>
-                            <Text style={styles.resultText}>Due Date: {new Date(checkoutData.dueDate).toLocaleDateString()}</Text>
-                            <View style={styles.goBackButton}>
-                                <Button title="Go Back" onPress={() => navigation.goBack()} color="#007BFF" />
-                            </View>
-                        </View>
-                    )}
+                    <Button title="Confirmar Devolução" onPress={handleCheckIn} color="#007BFF" />
                 </KeyboardAvoidingView>
             </ImageBackground>
         </TouchableWithoutFeedback>
     );
-};
+}
 
-// ... Styles ...
 const styles = StyleSheet.create({
     background: { flex: 1, resizeMode: "cover" },
-    container: { flex: 1, padding: 20, justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.5)" },
-    title: { fontSize: 24, fontWeight: "bold", color: "#fff", textAlign: "center", marginBottom: 16 },
+    container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "rgba(0,0,0,0.5)" },
+    title: { fontSize: 24, fontWeight: "bold", marginBottom: 20, textAlign: "center", color: "#fff" },
     block: { marginBottom: 18 },
-    input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 10, fontSize: 16, color: "#fff", backgroundColor: "rgba(255,255,255,0.2)", marginTop: 8 },
+    input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 10, fontSize: 16, color: "#fff", backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 20 }, // Ajustei margem
     modeRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
     modeChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: "#ccc" },
     modeChipActive: { backgroundColor: "#fff" },
     modeText: { color: "#fff" },
     modeTextActive: { color: "#000", fontWeight: "600" },
-    resultContainer: { marginTop: 24, padding: 15, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.85)", alignItems: "center" },
-    resultText: { fontSize: 16, color: "#333", marginBottom: 5 },
-    goBackButton: { marginTop: 16, width: "50%" },
 });
-
-export default CheckOutScreen;

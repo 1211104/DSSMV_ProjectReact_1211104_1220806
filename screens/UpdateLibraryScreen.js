@@ -5,6 +5,7 @@ import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/d
 // Flux Imports
 import { AppContext } from "../store/AppProvider";
 import { updateLibraryAction } from "../store/actions";
+import { getFriendlyErrorMessage } from "../utils/errorHandler";
 
 const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -91,7 +92,8 @@ const UpdateLibraryScreen = ({ route, navigation }) => {
                 navigation.goBack();
             })
             .catch((error) => {
-                Alert.alert("Error", "Failed to update library details.");
+                const msg = getFriendlyErrorMessage(error);
+                Alert.alert("Erro ao Atualizar", msg);
             });
     };
 

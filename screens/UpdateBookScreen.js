@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import { View, Text, StyleSheet, ImageBackground, TextInput, TouchableOpacity, Alert, Image } from "react-native";
 import { AppContext } from "../store/AppProvider";
 import { updateBookAction } from "../store/actions";
+import { getFriendlyErrorMessage } from "../utils/errorHandler";
 
 const UpdateBookScreen = ({ route, navigation }) => {
     const { book, libraryId } = route.params || {};
@@ -20,7 +21,8 @@ const UpdateBookScreen = ({ route, navigation }) => {
                 navigation.goBack();
             })
             .catch((error) => {
-                Alert.alert("Error", "Failed to update book details.");
+                const msg = getFriendlyErrorMessage(error);
+                Alert.alert("Erro ao Atualizar", msg);
             });
     };
 

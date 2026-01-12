@@ -134,7 +134,7 @@ const LibraryBooksScreen = ({ route }) => {
 
 
 const styles = StyleSheet.create({
-    // Copia os teus estilos originais aqui...
+
     background: { flex: 1, resizeMode: "cover" },
     container: { flex: 1, padding: 20, backgroundColor: "rgba(0, 0, 0, 0.5)" },
     header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },

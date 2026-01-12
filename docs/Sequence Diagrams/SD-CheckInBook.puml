@@ -1,0 +1,55 @@
+@startuml
+skinparam sequenceMessageAlign center
+autoactivate on
+
+actor "User" as User
+participant "CheckInScreen" as Screen
+participant "UserStore (SQLite)" as DB
+participant "Actions" as Action
+participant "LibraryService" as Service
+participant "API" as API
+participant "Reducer" as Store
+
+User -> Screen : Enter User/CC & Click "Return Book"
+
+group Resolve User Identity
+    alt Mode: User ID
+        Screen -> Screen : Get Input (Username/ID)
+    else Mode: CC Lookup
+        Screen -> DB : findUserByCC(cc)
+        return User Object
+    end
+end
+
+Screen -> Action : checkinBookAction(dispatch, libId, isbn, user)
+
+    ' 1. The Actual CheckIn
+    Action -> Service : CheckInBook(libId, isbn, user)
+    Service -> API : POST /v1/library/.../checkin
+    return 200 OK (Success)
+
+    ' 2. The Auto-Refresh
+    note right of Action
+      **Refetch Pattern:**
+      Reloads books immediately so the
+      "Available" count increases by 1
+    end note
+
+    Action -> Action : fetchBooksAction(dispatch, libId)
+        Action -> Service : GetBooks(libId)
+        Service -> API : GET /v1/library/.../book
+        return Updated Book List
+
+        Action -> Store : dispatch({type: FETCH_BOOKS_SUCCESS, list})
+        return State Updated
+    return Refetch Complete
+
+return Promise Resolved
+
+Screen -> User : Alert("Success", "Book returned successfully")
+User -> Screen : Click "OK"
+
+Screen -> Screen : navigation.goBack()
+return Navigate to Book List
+
+@enduml

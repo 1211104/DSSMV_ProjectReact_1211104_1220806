@@ -1,0 +1,99 @@
+@startuml
+skinparam linetype ortho
+allow_mixing
+title Class Diagram
+
+package "Views (Screens)" {
+  class HomeScreen
+  class LibraryListScreen
+  class LibraryBooksScreen
+  class CreateLibraryScreen
+  class UpdateLibraryScreen
+  class LoadBookScreen
+  class AddBookScreen
+  class UpdateBookScreen
+  class CheckOutScreen
+  class CheckInScreen
+  class ScannerScreen
+}
+
+package "Views (Components)" {
+  class LibraryCard
+  class BookCard
+  class LibraryModal
+  class BookModal
+}
+
+package "State Management" {
+  class AppContext <<Context>> {
+    +state: Object
+    +dispatch: Function
+  }
+
+  class Reducer {
+    +reducer(state, action)
+  }
+
+  class Actions <<Module>> {
+    +fetchLibrariesAction()
+    +createLibraryAction()
+    +updateLibraryAction()
+    +deleteLibraryAction()
+    +fetchBooksAction()
+    +addBookAction()
+    +updateBookAction()
+    +checkoutBookAction()
+    +checkinBookAction()
+    +searchBookAction()
+  }
+}
+
+package "Data Layer" {
+  class LibraryService <<Axios>> {
+    +GetLibraries()
+    +CreateLibrary()
+    +DeleteLibrary()
+    +UpdateLibrary()
+    +GetBooks()
+    +LoadBook()
+    +AddNewBook()
+    +UpdateBook()
+    +CheckOutBook()
+    +CheckInBook()
+  }
+
+  class UserStore <<SQLite>> {
+    +initUserTable()
+    +createUser()
+    +findUserByCC()
+    +findUserByUsername()
+    +dumpUsers()
+  }
+}
+
+
+LibraryListScreen ..> LibraryCard : renders
+LibraryListScreen ..> LibraryModal : uses
+LibraryBooksScreen ..> BookCard : renders
+LibraryBooksScreen ..> BookModal : uses
+LoadBookScreen ..> ScannerScreen : navigates to
+
+
+LibraryListScreen --> AppContext : consumes
+LibraryBooksScreen --> AppContext : consumes
+CreateLibraryScreen --> AppContext : consumes
+CheckOutScreen --> AppContext : consumes
+CheckInScreen --> AppContext : consumes
+LoadBookScreen --> AppContext : consumes
+
+
+AppContext --> Actions : dispatches to
+Actions --> Reducer : dispatches success/error
+Reducer --> AppContext : updates state
+
+Actions --> LibraryService : calls API
+CheckOutScreen ..> LibraryService : calls direct (for receipt data)
+CheckOutScreen ..> UserStore : reads/writes local DB
+CheckInScreen ..> UserStore : reads local DB
+
+@enduml

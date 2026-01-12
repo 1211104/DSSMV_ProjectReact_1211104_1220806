@@ -1,0 +1,54 @@
+@startuml
+skinparam sequenceMessageAlign center
+autoactivate on
+
+actor "User" as User
+participant "UpdateBookScreen" as Screen
+participant "Actions" as Action
+participant "LibraryService" as Service
+participant "API" as API
+participant "Reducer" as Store
+
+note right of User
+  User is already on
+  UpdateBookScreen
+  in "Edit" mode
+end note
+
+User -> Screen : Change Stock & Click "Save"
+note right of Screen
+  Parses input to Integer
+end note
+
+Screen -> Action : updateBookAction(dispatch, libId, isbn, { stock })
+
+Action -> Service : UpdateBook(libId, isbn, { stock })
+Service -> API : PUT /v1/library/{id}/book/{isbn}
+return 200 OK (Success)
+
+note right of Action
+  **Refetch Pattern:**
+  Reloads books to sync with server
+end note
+
+Action -> Action : fetchBooksAction(dispatch, libId)
+    Action -> Store : dispatch({ type: SET_LOADING, true })
+    return State Updated
+
+    Action -> Service : GetBooks(libId)
+    Service -> API : GET /v1/library/{id}/book
+    return List of Books (with updated stock)
+
+    Action -> Store : dispatch({ type: FETCH_BOOKS_SUCCESS, list })
+    return State Updated
+return Refetch Complete
+
+return Promise Resolved
+
+Screen -> User : Alert("Success", "Book details updated")
+User -> Screen : Click "OK"
+
+Screen -> Screen : navigation.goBack()
+return Navigate to Book List
+
+@enduml

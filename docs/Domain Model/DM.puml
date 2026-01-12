@@ -1,0 +1,51 @@
+@startuml
+hide empty members
+skinparam classAttributeIconSize 0
+title Domain Model
+
+class "Library" as Lib {
+  +id: String
+  +name: String
+  +address: String
+  +openDays: String
+  +openTime: Time
+  +closeTime: Time
+}
+
+class "Book" as Book {
+  +isbn: String
+  +title: String
+  +publishDate: Date
+  +numberOfPages: Integer
+  +byStatement: String
+  +coverUrl: String
+}
+
+class "Inventory" as Inv {
+  +stock: Integer
+  +available: Integer
+  +checkedOut: Integer
+}
+
+class "User" as User {
+  +id: Integer
+  +cc: String
+  +firstName: String
+  +phone: String
+  +role: Enum {Client, Librarian, Admin}
+  +username: String
+}
+
+class "Loan" as Loan {
+  +id: String
+  +dueDate: Date
+  +checkoutDate: Date
+}
+
+
+Lib "1" -- "*" Inv : contains >
+Book "1" -- "*" Inv : described by <
+User "1" -- "*" Loan : borrows >
+Loan "1" -- "1" Inv : refers to >
+
+@enduml

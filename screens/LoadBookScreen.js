@@ -22,38 +22,47 @@ const LoadBookScreen = ({ route }) => {
     const { libraryBooks = [], libraryId: incomingLibId, isbn: incomingIsbn } = route?.params || {};
     const navigation = useNavigation();
 
-    // Consumir Contexto Global
+    // Consume Global Context
     const { state, dispatch } = useContext(AppContext);
-    const { searchedBook, isLoading } = state; // Lemos o livro pesquisado do estado global
+    // Added 'error' to detect search failures
+    const { searchedBook, isLoading, error } = state;
 
-    // Estado local apenas para inputs de UI e persistência de navegação
+    // Local state for UI inputs and persistence
     const [persistedLibraryId, setPersistedLibraryId] = useState(incomingLibId ?? null);
     const [isbn, setIsbn] = useState("");
 
-    // Atualiza libraryId se vier novo via params
+    // Update libraryId if new one comes via params
     useEffect(() => {
         if (incomingLibId != null && incomingLibId !== persistedLibraryId) {
             setPersistedLibraryId(incomingLibId);
         }
     }, [incomingLibId, persistedLibraryId]);
 
-    // Limpar pesquisa anterior ao entrar no ecrã (mount)
+    // Clear previous search on mount
     useEffect(() => {
         clearSearchedBookAction(dispatch);
-    }, []); // Array vazio = apenas no mount
+    }, []);
 
-    // Detetar ISBN vindo do Scanner ou params e disparar pesquisa
+    // Detect ISBN from Scanner or params and trigger search
     useEffect(() => {
         if (!incomingIsbn) return;
         const code = String(incomingIsbn);
         setIsbn(code);
 
-        // Disparar Action em vez de chamar função local
+        // Trigger Action
         searchBookAction(dispatch, code);
 
-        // Limpar params para evitar loops
+        // Clear params to avoid loops
         navigation.setParams({ isbn: undefined, fromScanner: undefined });
     }, [incomingIsbn]);
+
+    // NEW: Show error coming from API (e.g., Book not found)
+    useEffect(() => {
+        if (error) {
+            // Displays the error from the state (ensure your actions.js sends English messages or handle it here)
+            Alert.alert("Error", error);
+        }
+    }, [error]);
 
     const handleSearch = () => {
         if (!isbn) {
@@ -64,17 +73,17 @@ const LoadBookScreen = ({ route }) => {
     };
 
     const handleAddBook = () => {
-        // Validação de Segurança: Se não houver livro ou se o livro não tiver ISBN, para aqui.
+        // Security Validation
         if (!searchedBook || !searchedBook.isbn) {
             Alert.alert("Validation Error", "No valid book details loaded. Please click 'Load Book' first.");
             return;
         }
 
-        // Verifica duplicados
+        // Check for duplicates
         if (libraryBooks.includes(searchedBook.isbn)) {
             Alert.alert("Validation Error", "This book already exists in the library.");
         } else {
-            // Avança apenas se tudo estiver correto
+            // Proceed only if everything is correct
             navigation.navigate("AddBook", {
                 book: searchedBook,
                 libraryId: persistedLibraryId
@@ -82,10 +91,9 @@ const LoadBookScreen = ({ route }) => {
         }
     };
 
-    // Limpar estado global ao sair do ecrã
+    // Clear global state on unmount
     useEffect(() => {
         return () => {
-            // Unmount cleanup
             clearSearchedBookAction(dispatch);
         };
     }, []);
@@ -115,8 +123,6 @@ const LoadBookScreen = ({ route }) => {
                     value={isbn}
                     onChangeText={(t) => {
                         setIsbn(t);
-                        // Se o utilizador limpar o input, podemos limpar o resultado visualmente se quisermos
-                        // mas geralmente espera-se clicar em Load
                     }}
                 />
 
@@ -126,7 +132,7 @@ const LoadBookScreen = ({ route }) => {
 
                 {isLoading && <Text style={styles.loadingText}>Loading...</Text>}
 
-                {/* Renderiza apenas se existir um searchedBook no estado global */}
+                {/* Render only if searchedBook exists in global state */}
                 {searchedBook && (
                     <View style={styles.bookDetails}>
                         <Text style={styles.detailText}>ISBN: {searchedBook?.isbn || "N/A"}</Text>

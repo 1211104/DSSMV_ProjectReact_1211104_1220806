@@ -11,6 +11,8 @@ import {
     CheckInBook,
 } from "../service/LibraryService";
 
+import { getFriendlyErrorMessage } from "../utils/errorHandler";
+
 // Action Types
 export const SET_LOADING = "SET_LOADING";
 export const SET_ERROR = "SET_ERROR";
@@ -18,10 +20,7 @@ export const FETCH_LIBRARIES_SUCCESS = "FETCH_LIBRARIES_SUCCESS";
 export const FETCH_BOOKS_SUCCESS = "FETCH_BOOKS_SUCCESS";
 export const SEARCH_BOOK_SUCCESS = "SEARCH_BOOK_SUCCESS";
 export const CLEAR_SEARCHED_BOOK = "CLEAR_SEARCHED_BOOK";
-// Nota: Delete, Create e Update muitas vezes apenas recarregam a lista,
-// mas podemos ter tipos específicos se quisermos atualizar o estado localmente sem refetch.
 
-// --- ACTION CREATORS ---
 
 // 1. Bibliotecas
 export const fetchLibrariesAction = async (dispatch) => {
@@ -30,8 +29,9 @@ export const fetchLibrariesAction = async (dispatch) => {
         const response = await GetLibraries();
         dispatch({ type: FETCH_LIBRARIES_SUCCESS, payload: response.data || [] });
     } catch (error) {
-        console.error(error);
-        dispatch({ type: SET_ERROR, payload: "Erro ao carregar bibliotecas." });
+        const msg = getFriendlyErrorMessage(error);
+        console.log("Fetch Libraries Error:", msg); // Log limpo
+        dispatch({ type: SET_ERROR, payload: msg });
     }
 };
 
@@ -39,12 +39,12 @@ export const createLibraryAction = async (dispatch, libraryData) => {
     dispatch({ type: SET_LOADING, payload: true });
     try {
         await CreateLibrary(libraryData);
-        // Após criar, recarregamos a lista para garantir dados frescos
         await fetchLibrariesAction(dispatch);
     } catch (error) {
-        console.error(error);
-        dispatch({ type: SET_ERROR, payload: "Erro ao criar biblioteca." });
-        throw error; // Re-lança para o ecrã poder mostrar alertas se necessário
+        const msg = getFriendlyErrorMessage(error);
+        console.log("Create Library Error:", msg);
+        dispatch({ type: SET_ERROR, payload: msg });
+        throw error; // Re-lança para o ecrã tratar se necessário
     }
 };
 
@@ -54,8 +54,9 @@ export const updateLibraryAction = async (dispatch, id, libraryData) => {
         await UpdateLibrary(id, libraryData);
         await fetchLibrariesAction(dispatch);
     } catch (error) {
-        console.error(error);
-        dispatch({ type: SET_ERROR, payload: "Erro ao atualizar biblioteca." });
+        const msg = getFriendlyErrorMessage(error);
+        console.log("Update Library Error:", msg);
+        dispatch({ type: SET_ERROR, payload: msg });
         throw error;
     }
 };
@@ -63,12 +64,11 @@ export const updateLibraryAction = async (dispatch, id, libraryData) => {
 export const deleteLibraryAction = async (dispatch, id) => {
     try {
         await DeleteLibrary(id);
-        // Aqui podíamos despachar um DELETE_SUCCESS e filtrar localmente,
-        // mas recarregar garante sincronia com o servidor.
         await fetchLibrariesAction(dispatch);
     } catch (error) {
-        console.error(error);
-        dispatch({ type: SET_ERROR, payload: "Erro ao apagar biblioteca." });
+        const msg = getFriendlyErrorMessage(error);
+        console.log("Delete Library Error:", msg);
+        dispatch({ type: SET_ERROR, payload: msg });
         throw error;
     }
 };
@@ -80,8 +80,9 @@ export const fetchBooksAction = async (dispatch, libraryId) => {
         const response = await GetBooks(libraryId);
         dispatch({ type: FETCH_BOOKS_SUCCESS, payload: response.data || [] });
     } catch (error) {
-        console.error(error);
-        dispatch({ type: SET_ERROR, payload: "Erro ao carregar livros." });
+        const msg = getFriendlyErrorMessage(error);
+        console.log("Fetch Books Error:", msg);
+        dispatch({ type: SET_ERROR, payload: msg });
     }
 };
 
@@ -91,8 +92,9 @@ export const addBookAction = async (dispatch, libraryId, isbn, bookData) => {
         await AddNewBook(libraryId, isbn, bookData);
         await fetchBooksAction(dispatch, libraryId);
     } catch (error) {
-        console.error(error);
-        dispatch({ type: SET_ERROR, payload: "Erro ao adicionar livro." });
+        const msg = getFriendlyErrorMessage(error);
+        console.log("Add Book Error:", msg);
+        dispatch({ type: SET_ERROR, payload: msg });
         throw error;
     }
 };
@@ -102,17 +104,19 @@ export const updateBookAction = async (dispatch, libraryId, isbn, bookData) => {
         await UpdateBook(libraryId, isbn, bookData);
         await fetchBooksAction(dispatch, libraryId);
     } catch (error) {
-        console.error(error);
+        console.log("Update Book Error:", getFriendlyErrorMessage(error));
         throw error;
     }
 };
 
-// CheckIn / CheckOut (apenas recarregam os livros após sucesso)
+// CheckIn / CheckOut
 export const checkoutBookAction = async (dispatch, libraryId, isbn, userId) => {
     try {
         await CheckOutBook(libraryId, isbn, userId);
         await fetchBooksAction(dispatch, libraryId);
     } catch (error) {
+        // Não fazemos dispatch de erro aqui porque o ecrã CheckOutScreen trata disso individualmente,
+        // mas podes adicionar se quiseres.
         throw error;
     }
 };
@@ -127,32 +131,30 @@ export const checkinBookAction = async (dispatch, libraryId, isbn, userId) => {
 };
 
 export const searchBookAction = async (dispatch, isbn) => {
-
-    console.log(">>> A PESQUISAR ISBN:", isbn, " (Tipo:", typeof isbn, ")");
+    console.log(">>> SEARCHING ISBN:", isbn); // Log informativo normal
 
     dispatch({ type: SET_LOADING, payload: true });
     try {
         const response = await LoadBook(isbn);
 
-
-        // Garante que response e response.data existem antes de enviar para o estado
         if (response && response.data) {
             dispatch({ type: SEARCH_BOOK_SUCCESS, payload: response.data });
         } else {
-            // Se a API responder OK mas sem dados de livro (ex: objeto vazio)
-            throw new Error("Dados do livro inválidos ou vazios.");
+            throw new Error("Invalid or empty book data.");
         }
 
     } catch (error) {
-        console.error("Erro na pesquisa:", error);
-        dispatch({ type: SET_ERROR, payload: "Livro não encontrado ou erro na API." });
+        // 1. Obter a mensagem limpa
+        const friendlyMsg = getFriendlyErrorMessage(error);
 
-        // limpar qualquer "lixo" anterior se a pesquisa falhar
+        console.log("Search failed (handled):", friendlyMsg);
+
+        dispatch({ type: SET_ERROR, payload: friendlyMsg });
+
         dispatch({ type: CLEAR_SEARCHED_BOOK });
     }
 };
 
-// limpar o livro pesquisado ao sair do ecrã
 export const clearSearchedBookAction = (dispatch) => {
     dispatch({ type: CLEAR_SEARCHED_BOOK });
 };

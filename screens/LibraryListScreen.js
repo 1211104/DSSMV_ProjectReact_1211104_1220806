@@ -4,8 +4,8 @@ import LibraryCard from '../components/LibraryCard';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LibraryModal } from '../components/LibraryModal';
 import { SafeAreaView } from "react-native-safe-area-context";
+import { getFriendlyErrorMessage } from "../utils/errorHandler";
 
-// Flux Imports
 import { AppContext } from '../store/AppProvider';
 import { fetchLibrariesAction, deleteLibraryAction } from '../store/actions';
 
@@ -18,7 +18,7 @@ const LibraryListScreen = () => {
     const navigation = useNavigation();
 
     const isLibraryOpen = (library) => {
-        // Verificação de Segurança: Se algum campo obrigatório for nulo, assume que está fechada
+
         if (!library.openDays || !library.openTime || !library.closeTime) {
             return false;
         }
@@ -28,11 +28,13 @@ const LibraryListScreen = () => {
             const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             const currentDay = daysOfWeek[now.getDay()];
 
-            // 1. Verificar se a biblioteca abre hoje
             const openDaysList = library.openDays.split(',').map(d => d.trim());
-            if (!openDaysList.includes(currentDay)) return false;
 
-            // 2. Comparar horários
+            const isOpenToday = openDaysList.includes("All") || openDaysList.includes(currentDay);
+
+            if (!isOpenToday) return false;
+
+
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
             const [openH, openM] = library.openTime.split(':').map(Number);
@@ -42,9 +44,10 @@ const LibraryListScreen = () => {
             const closeTimeMinutes = closeH * 60 + closeM;
 
             return currentMinutes >= openTimeMinutes && currentMinutes <= closeTimeMinutes;
+
         } catch (error) {
             console.error("Error parsing library hours:", error);
-            return false; // Em caso de formato de hora inválido, mantém como fechada
+            return false;
         }
     };
 
@@ -82,7 +85,8 @@ const LibraryListScreen = () => {
                         Alert.alert("Success", "Library successfully deleted");
                     })
                     .catch((error) => {
-                        Alert.alert("Error", "Failed to delete library");
+                        const msg = getFriendlyErrorMessage(error);
+                        Alert.alert("Error", msg);
                     });
             },
         },
@@ -94,7 +98,7 @@ const LibraryListScreen = () => {
     ];
 
     const renderLibraryCard = ({ item }) => {
-        // Se não houver dados de horário, usamos um cinzento ou vermelho suave
+
         const isOpen = isLibraryOpen(item);
 
         const backgroundColor = isOpen
@@ -109,7 +113,7 @@ const LibraryListScreen = () => {
                 <LibraryCard
                     name={item.name}
                     address={item.address}
-                    // Garante que o texto não falha se os dados forem nulos
+
                     openDays={item.openDays || "N/A"}
                     openTime={item.openTime || "N/A"}
                     closeTime={item.closeTime || "N/A"}
@@ -159,7 +163,7 @@ const styles = StyleSheet.create({
     createButtonText: { color: "#111", fontSize: 12, fontWeight: "600" },
     text: { fontSize: 24, fontWeight: "bold", color: "#fff", marginBottom: 16 },
     cardContainer: {
-        // backgroundColor original removida para permitir a cor dinâmica
+
         borderRadius: 10,
         marginVertical: 8,
         padding: 16,

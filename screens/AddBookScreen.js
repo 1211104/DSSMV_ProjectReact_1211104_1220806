@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ImageBackground } from "react-native";
 import { AppContext } from "../store/AppProvider";
 import { addBookAction } from "../store/actions";
+import { getFriendlyErrorMessage } from "../utils/errorHandler";
 
 const AddBookScreen = ({ route, navigation }) => {
     const { libraryId: incomingLibId, book } = route.params || {};
@@ -49,8 +50,8 @@ const AddBookScreen = ({ route, navigation }) => {
                 navigation.navigate("LibraryBooks", { libraryId });
             })
             .catch((error) => {
-                Alert.alert("Error", "Failed to add the book.");
-            });
+                const msg = getFriendlyErrorMessage(error);
+                Alert.alert("Não foi possível adicionar", msg);            });
     };
 
     return (

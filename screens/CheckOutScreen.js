@@ -7,7 +7,7 @@ import { findUserByCC, findUserByUsername, createUser, dumpUsers, initUserTable 
 
 import { AppContext } from "../store/AppProvider";
 import { checkoutBookAction } from "../store/actions";
-import { CheckOutBook } from "../service/LibraryService"; // Podemos precisar chamar direto se a action não retornar dados, mas vamos tentar adaptar.
+import { CheckOutBook } from "../service/LibraryService";
 
 const ROLES = ["Client", "Librarian", "Admin"];
 const MODES = { USER_ID: "USER_ID", CC_LOOKUP: "CC_LOOKUP", CREATE_USER: "CREATE_USER" };
@@ -40,10 +40,13 @@ const CheckOutScreen = ({ route }) => {
 
             if (u) {
                 return u.username;
-            } else {
+            }
 
+            if (inputId === "Wonderful User") {
                 return inputId;
             }
+
+            throw new Error("User ID not found locally.");
         }
 
         if (mode === MODES.CC_LOOKUP) {

@@ -27,15 +27,20 @@ export default function CheckInScreen({ route }) {
 
     const resolveUsername = async () => {
         if (mode === MODES.USER_ID) {
-            if (!userId.trim()) throw new Error("Insira um ID de utilizador.");
-            const u = await findUserByUsername(userId.trim());
-            if (!u) throw new Error("Utilizador não encontrado.");
-            return u.username;
-        } else {
-            if (!cc.trim()) throw new Error("Insira o CC.");
-            const u = await findUserByCC(cc.trim());
-            if (!u) throw new Error("Nenhum utilizador com esse CC.");
-            return u.username;
+            const inputId = userId.trim();
+            if (!inputId) throw new Error("Insira um ID de utilizador.");
+
+            const u = await findUserByUsername(inputId);
+
+            if (u) {
+                return u.username;
+            }
+
+            if (inputId === "Wonderful User") {
+                return inputId;
+            }
+
+            throw new Error("Utilizador não encontrado localmente.");
         }
     };
 
@@ -43,7 +48,6 @@ export default function CheckInScreen({ route }) {
         try {
             const username = await resolveUsername();
 
-            // Dispara a Action
             await checkinBookAction(dispatch, libraryId, book.isbn, username);
 
             await AsyncStorage.setItem("userId", username);

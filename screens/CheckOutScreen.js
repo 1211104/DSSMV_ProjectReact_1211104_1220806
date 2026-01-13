@@ -2,11 +2,9 @@ import React, { useEffect, useState, useContext } from "react";
 import { View, Text, TextInput, Button, StyleSheet, Alert, ImageBackground, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// Imports SQLite (locais, não precisam de Flux global, a menos que queiras gerir user no Context)
+import { getFriendlyErrorMessage } from "../utils/errorHandler";
 import { findUserByCC, findUserByUsername, createUser, dumpUsers, initUserTable } from "../database/userStore";
 
-// Flux Imports
 import { AppContext } from "../store/AppProvider";
 import { checkoutBookAction } from "../store/actions";
 import { CheckOutBook } from "../service/LibraryService"; // Podemos precisar chamar direto se a action não retornar dados, mas vamos tentar adaptar.
@@ -33,13 +31,21 @@ const CheckOutScreen = ({ route }) => {
     }, []);
 
     const resolveUsername = async () => {
-        // ... (lógica inalterada do ficheiro original) ...
+
         if (mode === MODES.USER_ID) {
-            if (!userId.trim()) throw new Error("Enter a User ID.");
-            const u = await findUserByUsername(userId.trim());
-            if (!u) throw new Error("User ID not found.");
-            return u.username;
+            const inputId = userId.trim();
+            if (!inputId) throw new Error("Enter a User ID.");
+
+            const u = await findUserByUsername(inputId);
+
+            if (u) {
+                return u.username;
+            } else {
+
+                return inputId;
+            }
         }
+
         if (mode === MODES.CC_LOOKUP) {
             if (!cc.trim()) throw new Error("Indicate CC.");
             const u = await findUserByCC(cc.trim());
@@ -57,7 +63,6 @@ const CheckOutScreen = ({ route }) => {
         try {
             const username = await resolveUsername();
 
-            // Log para confirmar os dados antes do envio
             console.log("Enviando Checkout:", { libraryId, isbn: book.isbn, username });
 
             const response = await CheckOutBook(libraryId, book.isbn, username);
@@ -68,21 +73,15 @@ const CheckOutScreen = ({ route }) => {
                 dueDate: response.data.dueDate
             });
 
-            Alert.alert("Success", "Book successfully checked out.");
+            Alert.alert("Sucesso", "Livro requisitado com sucesso.");
+
         } catch (err) {
-            // SE DER ERRO 400, A API ENVIA UMA MENSAGEM NO 'response.data'
-            if (err.response) {
-                console.error("ERRO DETALHADO DA API:", err.response.data);
 
-                // Tenta extrair a mensagem de erro que o servidor enviou
-                const errorMessage = err.response.data.message ||
-                    err.response.data.error ||
-                    "Invalid parameters (check stock or IDs)";
+            console.error("Erro no Checkout:", err);
 
-                Alert.alert("Error", errorMessage);
-            } else {
-                Alert.alert("Error", err.message);
-            }
+            const userMessage = getFriendlyErrorMessage(err);
+
+            Alert.alert("Atenção", userMessage);
         }
     };
 
@@ -137,7 +136,6 @@ const CheckOutScreen = ({ route }) => {
     );
 };
 
-// ... Styles ...
 const styles = StyleSheet.create({
     background: { flex: 1, resizeMode: "cover" },
     container: { flex: 1, padding: 20, justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.5)" },
